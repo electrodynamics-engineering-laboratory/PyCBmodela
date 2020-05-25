@@ -21,6 +21,7 @@ class Board:
         self.info = {
             'width' : -1,
             'height' : -1,
+            'unit' : None,
             
             # List of dictionaries with keys x1, y1, x2, y2, width, layer
             'wires' : [],
@@ -71,6 +72,11 @@ def parseXML(XMLfile):
     try:
         tree = ET.parse(XMLfile)
         root = tree.getroot()
+
+        def getUnit():
+            gridTag = next(root.iter('grid'))
+            unit = gridTag.get('unit')
+            return unit
 
         def parseWires():
             wiresList = []
@@ -155,6 +161,7 @@ def parseXML(XMLfile):
 
 
         myBoard = Board()
+        myBoard.unit = getUnit()
         myBoard.wires = parseWires()
         myBoard.circles = parseCircles()
         myBoard.holes = parseHoles()
@@ -179,7 +186,10 @@ targetBoard = parseXML(targetFile)
 
 
 # Proof of concept, will be deleted later
-print('Layers detected:\n--------------------')
+print('Unit detected:\n--------------------')
+print(targetBoard.unit)
+
+print('\n\nLayers detected:\n--------------------')
 for layerNum in targetBoard.layers:
     print(str(layerNum) + ': ' + targetBoard.layers[layerNum])
 
