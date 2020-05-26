@@ -5,13 +5,6 @@
     To run, place this script and a single .brd file in a directory and run
     >python3 brd_parse.py
 
-    Ongoing Questions
-        -Consider polygons (e.g. ground) as wire?
-    
-
-    -store board dimensions
-    -looking into modela minimum path length
-
     25 May 2020
 """
 import sys
