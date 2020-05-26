@@ -7,7 +7,7 @@
 
     NOTE: the unit parsed in the XML appears to default to mil, even when a board's dimensions in Autodesk Eagle
     are specified as mm. This is likely because the unit detected corresponds to the grid used in Eagle rather than the
-    actual board dimensions. 
+    actual board dimensions. Going forward, units will be assumed mm.
 
     26 May 2020
 """
@@ -22,7 +22,7 @@ class Board:
         self.info = {
             'width' : -1,
             'height' : -1,
-            'unit' : None,
+            'unit' : 'mm',
             
             # List of dictionaries with keys x1, y1, x2, y2, width, layer, curve
             'perimeter' : [],
@@ -92,10 +92,11 @@ def parseXML(XMLfile):
         #                                       #
         #########################################
 
-        def getUnit():
-            gridTag = next(root.iter('grid'))                       # Access grid tag
-            unit = gridTag.get('unit')
-            return unit
+        # Units are assumed mm, will be deleted at a later time
+        # def getUnit():
+        #     gridTag = next(root.iter('grid'))                       # Access grid tag
+        #     unit = gridTag.get('unit')
+        #     return unit
         
         def getPerimeter():
             perimeterList = []
@@ -287,7 +288,7 @@ def parseXML(XMLfile):
         myBoard = Board()                                           # Construct and return a Board object
         myBoard.perimeter = getPerimeter()
         myBoard.width, myBoard.height = getDimensions(myBoard.perimeter)
-        myBoard.unit = getUnit()
+        myBoard.unit = 'mm'                                         # Units are assumed mm
         myBoard.wires = parseWires()
         myBoard.circles = parseCircles()
         myBoard.holes = parseHoles()
