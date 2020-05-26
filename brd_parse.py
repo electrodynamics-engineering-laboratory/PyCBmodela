@@ -7,6 +7,10 @@
 
     Ongoing Questions
         -Consider polygons (e.g. ground) as wire?
+    
+
+    -store board dimensions
+    -looking into modela minimum path length
 
     25 May 2020
 """
@@ -40,6 +44,13 @@ class Board:
 
             # Dictionary with int keys and str values
             'layers' : {},
+
+            # List of dictionaries with keys vertices, width, layer
+            'polygons' : [],
+
+            # List of dictionaries with keys x1, y1, x2, y2, width, layer
+            # Could be merged with Board.wires later?
+            'routedCircles' : []
         }
 
 
@@ -72,6 +83,14 @@ def parseXML(XMLfile):
     try:
         tree = ET.parse(XMLfile)
         root = tree.getroot()
+
+
+
+        #########################################
+        #                                       #
+        #           Parsing Functions           #
+        #                                       #
+        #########################################
 
         def getUnit():
             gridTag = next(root.iter('grid'))
@@ -106,7 +125,7 @@ def parseXML(XMLfile):
                     'width' : float(circle.get('width')),
                     'layer' : int(circle.get('layer'))
                 })                                                  # Note that circles are nothing more than holes at 
-            return circlesList                                      # a point. Add routes around the perimeter later
+            return circlesList                                      # a point. Routes are added later
 
         def parseHoles():
             holesList = []
@@ -157,10 +176,79 @@ def parseXML(XMLfile):
                 layerName = layer.get('name')
                 layerDict[layerNumber] = layerName
             return layerDict
+        
+        def parsePolygons():
+            polygonList = []
+            signalsTag = next(root.iter('signals'))                 # Access signals tag
+            for polygon in signalsTag.iter('polygon'):
+                polygonWidth = float(polygon.get('width'))
+                polygonLayer = int(polygon.get('layer'))
+                polygonVertices = []                                # Construct a list of dictionaries to hold coords and curve
+                for vertex in polygon.iter('vertex'):               # Append each vertex (x, y, curve) to the polygon's vertices list
+                    vx = float(vertex.get('x'))
+                    vy = float(vertex.get('y'))
+                    if vertex.get('curve') is None:
+                        vcurve = None
+                    else:
+                        vcurve = float(vertex.get('curve'))
+                    polygonVertices.append({
+                        'x' : vx,
+                        'y' : vy,
+                        'curve' : vcurve
+                    })
+                polygonList.append({
+                    'vertices' : polygonVertices,
+                    'width' : polygonWidth,
+                    'layer' : polygonLayer
+                })
+            return polygonList
+                        
+
+
+        #########################################
+        #                                       #
+        #            Helper Functions           #
+        #                                       #
+        #########################################
+
+        """
+            Take in the board's circles attribute and return a list of wires
+        """
+        def circleToRoutes(boardCircles):
+            import math
+            circleRoutes = []
+            for circle in boardCircles:
+                circlex = circle['x']
+                circley = circle['y']
+                circleradius = circle['radius']
+                width = circle['width']
+                layer = circle['layer']
+
+                for i in range(0, 40):
+                    x1 = circlex + (circleradius * math.cos(9*i * (math.pi / 180)))
+                    y1 = circley + (circleradius * math.sin(9*i * (math.pi / 180)))
+                    x2 = circlex + (circleradius * math.cos(9*(i+1) * (math.pi / 180)))
+                    y2 = circley + (circleradius * math.sin(9*(i+1) * (math.pi / 180)))
+
+                    circleRoutes.append({
+                        'x1' : x1,
+                        'y1' : y1,
+                        'x2' : x2,
+                        'y2' : y2,
+                        'width' : width,
+                        'layer' : layer
+                    })
+            return circleRoutes
 
 
 
-        myBoard = Board()
+        #########################################
+        #                                       #
+        #              Finalizing               #
+        #                                       #
+        #########################################
+
+        myBoard = Board()                                           # Construct and return a Board object
         myBoard.unit = getUnit()
         myBoard.wires = parseWires()
         myBoard.circles = parseCircles()
@@ -168,11 +256,15 @@ def parseXML(XMLfile):
         myBoard.vias = parseVias()
         myBoard.parts = parseParts()
         myBoard.layers = parseLayers()
+        myBoard.polygons = parsePolygons()
+        myBoard.routedCircles = circleToRoutes(myBoard.circles)
         return myBoard
 
     except:
         print('Error parsing .brd file.')
         raise
+
+
 
 
 
@@ -232,3 +324,27 @@ for hole in targetBoard.holes:
 print('\n\nVias detected:\n--------------------')
 for via in targetBoard.vias:
     print(str((via['x'], hole['y'])) + ', drill size: ' + str(via['drill']) + ', extent: ' + via['extent'])
+
+
+
+print('\n\nPolygons detected:\n--------------------')
+for polygon in targetBoard.polygons:
+    print('Polygon at layer ' + str(polygon['layer']) + ' with width ' + str(polygon['width']))
+    for vertex in polygon['vertices']:
+        print('   ' + str(vertex))
+
+
+
+print('\n\nRouted circles:\n--------------------')
+routedCirclesInEachLayer = [None] * 100
+for routedCircles in targetBoard.routedCircles:
+    if routedCirclesInEachLayer[routedCircles['layer']] is not None:
+        routedCirclesInEachLayer[routedCircles['layer']].append(((routedCircles['x1'], routedCircles['y1']), (routedCircles['x2'], routedCircles['y2'])))
+    else:
+        routedCirclesInEachLayer[routedCircles['layer']] = [((routedCircles['x1'], routedCircles['y1']), (routedCircles['x2'], routedCircles['y2']))]
+
+for layerNumber, routedCircles in enumerate(routedCirclesInEachLayer):
+    if routedCircles is not None:
+        print('Layer ' + str(layerNumber) + ':')
+        for routedCirclesRoute in routedCircles:
+            print(routedCirclesRoute)
