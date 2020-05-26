@@ -1,11 +1,15 @@
 """
     Current functionality is:
-        -Creating board object with wires, circles, holes, vias, parts, layers. 
+        -Creating board object with dimensions, perimeter, wires, circles, holes, vias, parts, layers. 
 
     To run, place this script and a single .brd file in a directory and run
     >python3 brd_parse.py
 
-    25 May 2020
+    NOTE: the unit parsed in the XML appears to default to mil, even when a board's dimensions in Autodesk Eagle
+    are specified as mm. This is likely because the unit detected corresponds to the grid used in Eagle rather than the
+    actual board dimensions. 
+
+    26 May 2020
 """
 import sys
 
@@ -20,6 +24,9 @@ class Board:
             'height' : -1,
             'unit' : None,
             
+            # List of dictionaries with keys x1, y1, x2, y2, width, layer, curve
+            'perimeter' : [],
+
             # List of dictionaries with keys x1, y1, x2, y2, width, layer
             'wires' : [],
 
@@ -86,9 +93,24 @@ def parseXML(XMLfile):
         #########################################
 
         def getUnit():
-            gridTag = next(root.iter('grid'))
+            gridTag = next(root.iter('grid'))                       # Access grid tag
             unit = gridTag.get('unit')
             return unit
+        
+        def getPerimeter():
+            perimeterList = []
+            plainTag = next(root.iter('plain'))
+            for wire in plainTag.iter('wire'):
+                perimeterList.append({
+                    'x1' : float(wire.get('x1')),
+                    'y1' : float(wire.get('y1')),
+                    'x2' : float(wire.get('x1')),
+                    'y2' : float(wire.get('y2')),
+                    'width' : float(wire.get('width')),
+                    # 'layer' : int(wire.get('layer')),             Dimension is stored in layer 20, so this is implicit
+                    'curve' : wire.get('curve')
+                })
+            return perimeterList
 
         def parseWires():
             wiresList = []
@@ -205,7 +227,10 @@ def parseXML(XMLfile):
         #########################################
 
         """
-            Take in the board's circles attribute and return a list of wires
+            Take in the board's circles attribute and return a list of wires.
+
+            Note that the minimum mechanical resolution is 0.00625mm/step = 0.246mil/step and 
+            software resolution is 0.025mm/step = 0.984mil/step
         """
         def circleToRoutes(boardCircles):
             import math
@@ -232,6 +257,24 @@ def parseXML(XMLfile):
                         'layer' : layer
                     })
             return circleRoutes
+        
+
+
+        def getDimensions(boardPerimeter):
+            minx = 999999
+            miny = 999999
+            maxx = -1
+            maxy = -1
+            for route in boardPerimeter:
+                minx = min(minx, route['x1'])
+                maxx = max(maxx, route['x2'])
+                miny = min(miny, route['y1'])
+                maxy = max(maxy, route['y2'])
+            
+            width = maxx - minx
+            height = maxy - miny
+            return (width, height)
+
 
 
 
@@ -242,6 +285,8 @@ def parseXML(XMLfile):
         #########################################
 
         myBoard = Board()                                           # Construct and return a Board object
+        myBoard.perimeter = getPerimeter()
+        myBoard.width, myBoard.height = getDimensions(myBoard.perimeter)
         myBoard.unit = getUnit()
         myBoard.wires = parseWires()
         myBoard.circles = parseCircles()
@@ -251,6 +296,7 @@ def parseXML(XMLfile):
         myBoard.layers = parseLayers()
         myBoard.polygons = parsePolygons()
         myBoard.routedCircles = circleToRoutes(myBoard.circles)
+
         return myBoard
 
     except:
@@ -271,8 +317,21 @@ targetBoard = parseXML(targetFile)
 
 
 # Proof of concept, will be deleted later
-print('Unit detected:\n--------------------')
+print('Board dimensions:\n--------------------')
+print('Width: ' + str(targetBoard.width) + '\nHeight: ' + str(targetBoard.height))
+
+
+
+print('\n\nUnit detected:\n--------------------')
 print(targetBoard.unit)
+
+
+
+print('\n\nPerimeter detected:\n--------------------')
+for wire in targetBoard.perimeter:
+    print(str(((wire['x1'], wire['y1']), (wire['x2'], wire['y2']))) + ' with curvature ' + str(wire['curve']) + ', width: ' + str(wire['width']))
+
+
 
 print('\n\nLayers detected:\n--------------------')
 for layerNum in targetBoard.layers:
