@@ -91,12 +91,6 @@ def parseXML(XMLfile):
         #           Parsing Functions           #
         #                                       #
         #########################################
-
-        # Units are assumed mm, will be deleted at a later time
-        # def getUnit():
-        #     gridTag = next(root.iter('grid'))                       # Access grid tag
-        #     unit = gridTag.get('unit')
-        #     return unit
         
         def getPerimeter():
             perimeterList = []
@@ -309,95 +303,10 @@ def parseXML(XMLfile):
 
 
 """
-    Detect file, parse XML, print to terminal.
+    Detect file, parse XML, and return the Board object.
 """
-targetFile = findbrd()
-targetBoard = Board()
-targetBoard = parseXML(targetFile)
-
-
-
-# Proof of concept, will be deleted later
-print('Board dimensions:\n--------------------')
-print('Width: ' + str(targetBoard.width) + '\nHeight: ' + str(targetBoard.height))
-
-
-
-print('\n\nUnit detected:\n--------------------')
-print(targetBoard.unit)
-
-
-
-print('\n\nPerimeter detected:\n--------------------')
-for wire in targetBoard.perimeter:
-    print(str(((wire['x1'], wire['y1']), (wire['x2'], wire['y2']))) + ' with curvature ' + str(wire['curve']) + ', width: ' + str(wire['width']))
-
-
-
-print('\n\nLayers detected:\n--------------------')
-for layerNum in targetBoard.layers:
-    print(str(layerNum) + ': ' + targetBoard.layers[layerNum])
-
-
-
-print('\n\nParts detected:\n--------------------')
-for part in targetBoard.parts:
-    print(part['name'] + ' ' + part['value'] + ' ' + part['library'] + ' ' + part['package'] + ' detected at ' + str((part['x'], part['y'])) + ', rotation ' + str(part['rot']))
-
-
-
-print('\n\nWires detected:\n--------------------')
-wiresInEachLayer = [None] * 100
-for wire in targetBoard.wires:
-    if wiresInEachLayer[wire['layer']] is not None:
-        wiresInEachLayer[wire['layer']].append(((wire['x1'], wire['y1']), (wire['x2'], wire['y2'])))
-    else:
-        wiresInEachLayer[wire['layer']] = [((wire['x1'], wire['y1']), (wire['x2'], wire['y2']))]
-
-for layerNumber, wire in enumerate(wiresInEachLayer):
-    if wire is not None:
-        print('Layer ' + str(layerNumber) + ':')
-        for wireRoute in wire:
-            print(wireRoute)
-
-
-
-print('\n\nCircles detected:\n--------------------')
-for circle in targetBoard.circles:
-    print(str((circle['x'], circle['y'])) + ', radius: ' + str(circle['radius']) + ', width: ' + str(circle['width']) + ', layer: ' + str(circle['layer']))
-
-
-
-print('\n\nHoles detected:\n--------------------')
-for hole in targetBoard.holes:
-    print(str((hole['x'], hole['y'])) + ', drill size: ' + str(hole['drill']))
-
-
-
-print('\n\nVias detected:\n--------------------')
-for via in targetBoard.vias:
-    print(str((via['x'], hole['y'])) + ', drill size: ' + str(via['drill']) + ', extent: ' + via['extent'])
-
-
-
-print('\n\nPolygons detected:\n--------------------')
-for polygon in targetBoard.polygons:
-    print('Polygon at layer ' + str(polygon['layer']) + ' with width ' + str(polygon['width']))
-    for vertex in polygon['vertices']:
-        print('   ' + str(vertex))
-
-
-
-print('\n\nRouted circles:\n--------------------')
-routedCirclesInEachLayer = [None] * 100
-for routedCircles in targetBoard.routedCircles:
-    if routedCirclesInEachLayer[routedCircles['layer']] is not None:
-        routedCirclesInEachLayer[routedCircles['layer']].append(((routedCircles['x1'], routedCircles['y1']), (routedCircles['x2'], routedCircles['y2'])))
-    else:
-        routedCirclesInEachLayer[routedCircles['layer']] = [((routedCircles['x1'], routedCircles['y1']), (routedCircles['x2'], routedCircles['y2']))]
-
-for layerNumber, routedCircles in enumerate(routedCirclesInEachLayer):
-    if routedCircles is not None:
-        print('Layer ' + str(layerNumber) + ':')
-        for routedCirclesRoute in routedCircles:
-            print(routedCirclesRoute)
+def makeBoard():
+    targetFile = findbrd()
+    targetBoard = Board()
+    targetBoard = parseXML(targetFile)
+    return targetBoard
