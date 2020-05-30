@@ -1,17 +1,14 @@
 """
-    Current functionality is:
+    This file serves to define the Board object and implements methods to detect a brd file, parse the file, and create a Board
+    object. Current functionality is:
         -Creating board object with dimensions, perimeter, wires, circles, holes, vias, parts, layers. 
-
-    To run, place this script and a single .brd file in a directory and run
-    >python3 brd_parse.py
 
     NOTE: the unit parsed in the XML appears to default to mil, even when a board's dimensions in Autodesk Eagle
     are specified as mm. This is likely because the unit detected corresponds to the grid used in Eagle rather than the
     actual board dimensions. Going forward, units will be assumed mm.
 
-    26 May 2020
+    27 May 2020
 """
-import sys
 
 
 
@@ -23,35 +20,35 @@ class Board:
             'width' : -1,
             'height' : -1,
             'unit' : 'mm',
-            
-            # List of dictionaries with keys x1, y1, x2, y2, width, layer, curve
-            'perimeter' : [],
-
-            # List of dictionaries with keys x1, y1, x2, y2, width, layer
-            'wires' : [],
-
-            # List of dictionaries with keys x, y, radius, width, layer
-            'circles' : [],
-
-            # List of dictionaries with keys x, y, drill
-            'holes' : [],
-
-            # List of dictionaries with keys x, y, extent, drill
-            'vias' : [],
-            
-            # List of dictionaries with keys name, value, library, package, rot, x, y
-            'parts' : [],
-
-            # Dictionary with int keys and str values
-            'layers' : {},
-
-            # List of dictionaries with keys vertices, width, layer
-            'polygons' : [],
-
-            # List of dictionaries with keys x1, y1, x2, y2, width, layer
-            # Could be merged with Board.wires later?
-            'routedCircles' : []
         }
+
+        # List of dictionaries with keys x1, y1, x2, y2, width, layer, curve
+        self.perimeter : []
+
+        # List of dictionaries with keys x1, y1, x2, y2, width, layer
+        self.wires : []
+
+        # List of dictionaries with keys x, y, radius, width, layer
+        self.circles : []
+
+        # List of dictionaries with keys x, y, drill
+        self.holes : []
+
+        # List of dictionaries with keys x, y, extent, drill
+        self.vias : []
+        
+        # List of dictionaries with keys name, value, library, package, rot, x, y
+        self.parts : []
+
+        # Dictionary with int keys and str values
+        self.layers : {}
+
+        # List of dictionaries with keys vertices, width, layer
+        self.polygons : []
+
+        # List of dictionaries with keys x1, y1, x2, y2, width, layer
+        # Could be merged with Board.wires later?
+        self.routedCircles : []
 
 
 
