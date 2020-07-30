@@ -4,7 +4,9 @@
         -Producing a list of RML commands that mill out the board routes... except they're not scaled and I can't confirm it's 
          correct
 
-    29 May 2020
+    Suggested improvement: mill all wires with adjacent points together at the same time to improve milling speed
+
+    29 July 2020
 """
 
 import sys
@@ -55,7 +57,7 @@ def initializeTool():
 
     Recall that the minimum mechanical resolution is 0.00625mm/step = 0.246mil/step.
 
-    NOTE: Currently, millLayer uses the coordinate locations specified in XML. They need to be normalized with respect to the
+    NOTE: Currently, millLayer uses the coordinate locations specified in XML. They may need to be normalized with respect to the
     coordinate system of the MDX-15. 
         This also assumes a constant width for the wire routes. 
 """
@@ -66,20 +68,20 @@ def millJobByLayer(targetLayer, board):
 
     # Begin milling wires on this layer
     for wire in wireRoutes:
-        if(wire['layer'] == targetLayer):
-            xInitial = round(wire['x1'], 7)
-            yInitial = round(wire['y1'], 7)
-            xDest = round(wire['x2'], 7)
-            yDest = round(wire['y2'], 7)
+        if(wire.layer == targetLayer):
+            xInitial = round(wire.x1, 7)
+            yInitial = round(wire.y1, 7)
+            xDest = round(wire.x2, 7)
+            yDest = round(wire.y2, 7)
             jobText += 'PA{},{};MC1;PD;PA{},{}'.format(xInitial, yInitial, xDest, yDest)
             jobText += 'PU;MC0\n\n'
     
     for circle in circleRoutes:
-        if(circle['layer'] == targetLayer):
-            xInitial = round(circle['x1'], 7)
-            yInitial = round(circle['y1'], 7)
-            xDest = round(circle['x2'], 7)
-            yDest = round(circle['y2'], 7)
+        if(circle.layer == targetLayer):
+            xInitial = round(circle.x1, 7)
+            yInitial = round(circle.y1, 7)
+            xDest = round(circle.x2, 7)
+            yDest = round(circle.y2, 7)
             jobText += 'PA{},{};MC1;PD;PA{},{}'.format(xInitial, yInitial, xDest, yDest)
             jobText += 'PU;MC0\n\n'
 
@@ -91,17 +93,17 @@ def millJobByLayer(targetLayer, board):
     Proof of concept below, will need to improved upon
 """
 try:
-    myBoard = brdParse.makeBoard()                                  # Create the Board object
+    myBoard = brdParse.makeBoard()
 except:
     sys.exit(-1)
 
 nonEmptyLayers = []
 for wire in myBoard.wires:
-    if(wire['layer'] not in nonEmptyLayers):
-        nonEmptyLayers.append(wire['layer'])
+    if(wire.layer not in nonEmptyLayers):
+        nonEmptyLayers.append(wire.layer)
 for circle in myBoard.routedCircles:
-    if(circle['layer'] not in nonEmptyLayers):
-        nonEmptyLayers.append(circle['layer'])
+    if(circle.layer not in nonEmptyLayers):
+        nonEmptyLayers.append(circle.layer)
 
 
 

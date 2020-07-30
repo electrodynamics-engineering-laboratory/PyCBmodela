@@ -7,13 +7,25 @@
     are specified as mm. This is likely because the unit detected corresponds to the grid used in Eagle rather than the
     actual board dimensions. Going forward, units will be assumed mm.
 
-    27 May 2020
+    29 July 2020
 """
 
 
 
 
 
+"""
+    Board class with attributes:
+        -perimeter: list of Perimeter objects
+        -wires: list of Wire objects
+        -circles: list of Circle objects
+        -holes: list of Hole objects
+        -vias: list of Via objects
+        -parts: list of Part objects
+        -layers: dictionary with int keys -> str values
+        -polygons: list of Polygon objects
+        -routedCircles: list of RoutedCircle objects
+"""
 class Board:
     def __init__(self):
         self.info = {
@@ -22,32 +34,14 @@ class Board:
             'unit' : 'mm',
         }
 
-        # List of dictionaries with keys x1, y1, x2, y2, width, layer, curve
         self.perimeter : []
-
-        # List of dictionaries with keys x1, y1, x2, y2, width, layer
         self.wires : []
-
-        # List of dictionaries with keys x, y, radius, width, layer
         self.circles : []
-
-        # List of dictionaries with keys x, y, drill
         self.holes : []
-
-        # List of dictionaries with keys x, y, extent, drill
         self.vias : []
-        
-        # List of dictionaries with keys name, value, library, package, rot, x, y
         self.parts : []
-
-        # Dictionary with int keys and str values
         self.layers : {}
-
-        # List of dictionaries with keys vertices, width, layer
         self.polygons : []
-
-        # List of dictionaries with keys x1, y1, x2, y2, width, layer
-        # Could be merged with Board.wires later?
         self.routedCircles : []
 
 
@@ -93,15 +87,17 @@ def parseXML(XMLfile):
             perimeterList = []
             plainTag = next(root.iter('plain'))
             for wire in plainTag.iter('wire'):
-                perimeterList.append({
-                    'x1' : float(wire.get('x1')),
-                    'y1' : float(wire.get('y1')),
-                    'x2' : float(wire.get('x1')),
-                    'y2' : float(wire.get('y2')),
-                    'width' : float(wire.get('width')),
-                    # 'layer' : int(wire.get('layer')),             Dimension is stored in layer 20, so this is implicit
-                    'curve' : wire.get('curve')
-                })
+                class Perimeter:
+                    def __init__(self):
+                        self.x1 = float(wire.get('x1'))
+                        self.y1 = float(wire.get('y1'))
+                        self.x2 = float(wire.get('x2'))
+                        self.y2 = float(wire.get('y2'))
+                        self.width = float(wire.get('width'))
+                        # self.layer = int(wire.get('layer'))       # Dimension is stored in layer 20, so this is implicit
+                        self.curve = wire.get('curve')
+                thisPerimeter = Perimeter()
+                perimeterList.append(thisPerimeter)
             return perimeterList
 
         def parseWires():
@@ -111,27 +107,31 @@ def parseXML(XMLfile):
                 """
                     Will eventually need to check for valid coordinates
                 """
-                wiresList.append({
-                    'x1' : float(wireElement.get('x1')),
-                    'y1' : float(wireElement.get('y1')),
-                    'x2' : float(wireElement.get('x2')),
-                    'y2' : float(wireElement.get('y2')),
-                    'width' : float(wireElement.get('width')),
-                    'layer' : int(wireElement.get('layer'))
-                })
+                class Wire:
+                    def __init__(self):
+                        self.x1 = float(wireElement.get('x1'))
+                        self.y1 = float(wireElement.get('y1'))
+                        self.x2 = float(wireElement.get('x2'))
+                        self.y2 = float(wireElement.get('y2'))
+                        self.width = float(wireElement.get('width'))
+                        self.layer = int(wireElement.get('layer'))
+                thisWire = Wire()
+                wiresList.append(thisWire)
             return wiresList
         
         def parseCircles():
             circlesList = []
             plainTag = next(root.iter('plain'))                     # Access the plain tag
             for circle in plainTag.iter('circle'):
-                circlesList.append({
-                    'x' : float(circle.get('x')),
-                    'y' : float(circle.get('y')),
-                    'radius' : float(circle.get('radius')),
-                    'width' : float(circle.get('width')),
-                    'layer' : int(circle.get('layer'))
-                })                                                  # Note that circles are nothing more than holes at 
+                class Circle:
+                    def __init__(self):
+                        self.x = float(circle.get('x'))
+                        self.y = float(circle.get('y'))
+                        self.radius = float(circle.get('radius'))
+                        self.width = float(circle.get('width'))
+                        self.layer = int(circle.get('layer'))
+                thisCircle = Circle()
+                circlesList.append(thisCircle)                      # Note that circles are nothing more than holes at 
             return circlesList                                      # a point. Routes are added later
 
         def parseHoles():
@@ -141,39 +141,45 @@ def parseXML(XMLfile):
                 """
                     Will eventually need to check for valid coordinates
                 """
-                holesList.append({
-                    'x' : float(holeElement.get('x')),
-                    'y' : float(holeElement.get('y')),
-                    'drill' : float(holeElement.get('drill'))
-                })
+                class Hole:
+                    def __init__(self):
+                        self.x = float(holeElement.get('x'))
+                        self.y = float(holeElement.get('y'))
+                        self.drill = float(holeElement.get('drill'))
+                thisHole = Hole()
+                holesList.append(thisHole)
             return holesList
-
-        def parseParts():
-            partsList = []
-            elementsTag = next(root.iter('elements'))               # Access the elements tag
-            for boardElement in elementsTag.iter('element'):
-                partsList.append({
-                    'name' : boardElement.get('name'),
-                    'library' : boardElement.get('library'),
-                    'package' : boardElement.get('package'),
-                    'value' : boardElement.get('value'),
-                    'x' : float(boardElement.get('x')),
-                    'y' : float(boardElement.get('y')),
-                    'rot' : boardElement.get('rot')                 # None if does not exist
-                })
-            return partsList
             
         def parseVias():
             viasList = []
             signalsTag = next(root.iter('signals'))                 # Access the signals tag
             for viaElement in signalsTag.iter('via'):
-                viasList.append({
-                    'x' : float(viaElement.get('x')),
-                    'y' : float(viaElement.get('y')),
-                    'extent' : viaElement.get('extent'),
-                    'drill' : float(viaElement.get('drill')),
-                })
+                class Via:
+                    def __init__(self):
+                        self.x = float(viaElement.get('x'))
+                        self.y = float(viaElement.get('y'))
+                        self.extent = viaElement.get('extent')
+                        self.drill = float(viaElement.get('drill'))
+                thisVia = Via()
+                viasList.append(thisVia)
             return viasList
+
+        def parseParts():
+            partsList = []
+            elementsTag = next(root.iter('elements'))               # Access the elements tag
+            for boardElement in elementsTag.iter('element'):
+                class Part:
+                    def __init__(self):
+                        self.name = boardElement.get('name')
+                        self.library = boardElement.get('library')
+                        self.package = boardElement.get('package')
+                        self.value = boardElement.get('value')
+                        self.x = float(boardElement.get('x'))
+                        self.y = float(boardElement.get('y'))
+                        self.rot = boardElement.get('rot')
+                thisPart = Part()
+                partsList.append(thisPart)
+            return partsList
 
         def parseLayers():
             layerDict = {}
@@ -190,24 +196,28 @@ def parseXML(XMLfile):
             for polygon in signalsTag.iter('polygon'):
                 polygonWidth = float(polygon.get('width'))
                 polygonLayer = int(polygon.get('layer'))
-                polygonVertices = []                                # Construct a list of dictionaries to hold coords and curve
-                for vertex in polygon.iter('vertex'):               # Append each vertex (x, y, curve) to the polygon's vertices list
+                polygonVertices = []                                # Construct a list of Vertex objects to hold coords and curve
+                for vertex in polygon.iter('vertex'):               # Append each vertex (x, y, curve) to the Polygon object's  vertices list
                     vx = float(vertex.get('x'))
                     vy = float(vertex.get('y'))
                     if vertex.get('curve') is None:
                         vcurve = None
                     else:
                         vcurve = float(vertex.get('curve'))
-                    polygonVertices.append({
-                        'x' : vx,
-                        'y' : vy,
-                        'curve' : vcurve
-                    })
-                polygonList.append({
-                    'vertices' : polygonVertices,
-                    'width' : polygonWidth,
-                    'layer' : polygonLayer
-                })
+                    class Vertex:
+                        def __init__(self):
+                            self.x = vx
+                            self.y = vy
+                            self.curve = vcurve
+                    thisVertex = Vertex()
+                    polygonVertices.append(thisVertex)
+                class Polygon:
+                    def __init__(self):
+                        self.vertices = polygonVertices
+                        self.width = polygonWidth
+                        self.layer = polygonLayer
+                thisPolygon = Polygon()
+                polygonList.append(thisPolygon)
             return polygonList
                         
 
@@ -223,31 +233,37 @@ def parseXML(XMLfile):
 
             Note that the minimum mechanical resolution is 0.00625mm/step = 0.246mil/step and 
             software resolution is 0.025mm/step = 0.984mil/step
+
+            Suggested improvement: calculate greatest number of segments the circle can be composed of to create circle of given 
+            radius without going below minimum mechanical resolution
         """
         def circleToRoutes(boardCircles):
             import math
             circleRoutes = []
             for circle in boardCircles:
-                circlex = circle['x']
-                circley = circle['y']
-                circleradius = circle['radius']
-                width = circle['width']
-                layer = circle['layer']
+                circlex = circle.x
+                circley = circle.y
+                circleradius = circle.radius
+                width = circle.width
+                layer = circle.layer
 
-                for i in range(0, 40):
-                    x1 = circlex + (circleradius * math.cos(9*i * (math.pi / 180)))
-                    y1 = circley + (circleradius * math.sin(9*i * (math.pi / 180)))
-                    x2 = circlex + (circleradius * math.cos(9*(i+1) * (math.pi / 180)))
-                    y2 = circley + (circleradius * math.sin(9*(i+1) * (math.pi / 180)))
-
-                    circleRoutes.append({
-                        'x1' : x1,
-                        'y1' : y1,
-                        'x2' : x2,
-                        'y2' : y2,
-                        'width' : width,
-                        'layer' : layer
-                    })
+                numSegments = 40
+                segmentAngle = 360/numSegments
+                for i in range(0, numSegments):
+                    x1 = circlex + (circleradius * math.cos(segmentAngle*i * (math.pi / 180)))
+                    y1 = circley + (circleradius * math.sin(segmentAngle*i * (math.pi / 180)))
+                    x2 = circlex + (circleradius * math.cos(segmentAngle*(i+1) * (math.pi / 180)))
+                    y2 = circley + (circleradius * math.sin(segmentAngle*(i+1) * (math.pi / 180)))
+                    class RoutedCircle:
+                        def __init__(self):
+                            self.x1 = x1
+                            self.y1 = y1
+                            self.x2 = x2
+                            self.y2 = y2
+                            self.width = width
+                            self.layer = layer
+                    routedCircle = RoutedCircle()
+                    circleRoutes.append(routedCircle)
             return circleRoutes
         
 
@@ -258,10 +274,10 @@ def parseXML(XMLfile):
             maxx = -1
             maxy = -1
             for route in boardPerimeter:
-                minx = min(minx, route['x1'])
-                maxx = max(maxx, route['x2'])
-                miny = min(miny, route['y1'])
-                maxy = max(maxy, route['y2'])
+                minx = min(minx, route.x1)
+                maxx = max(maxx, route.x2)
+                miny = min(miny, route.y1)
+                maxy = max(maxy, route.y2)
             
             width = maxx - minx
             height = maxy - miny
@@ -272,11 +288,11 @@ def parseXML(XMLfile):
 
         #########################################
         #                                       #
-        #              Finalizing               #
+        #         Board Object Creation         #
         #                                       #
         #########################################
 
-        myBoard = Board()                                           # Construct and return a Board object
+        myBoard = Board()
         myBoard.perimeter = getPerimeter()
         myBoard.width, myBoard.height = getDimensions(myBoard.perimeter)
         myBoard.unit = 'mm'                                         # Units are assumed mm
