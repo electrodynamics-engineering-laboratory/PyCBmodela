@@ -1,12 +1,13 @@
 """
     WIP interface between .brd and terminal (or server, at a later point). This file is intended to produce a string of RML 
     commands that can be used to control the Modela MDX-15. Current functionality is:
-        -Producing a list of RML commands that mill out the board routes... except they're not scaled and I can't confirm it's 
-         correct
+        -Producing a list of RML commands that mill out board routes and circles. Polygons are not yet implemented.
 
-    Suggested improvement: mill all wires with adjacent points together at the same time to improve milling speed
+    Suggested improvements: 
+        -hash out routes, circles, and (eventually) polygons where key is layer and value is 
+         list of routes, etc. for that non-empty layer
 
-    29 July 2020
+    4 August 2020
 """
 
 import sys
@@ -56,35 +57,49 @@ def initializeTool():
     was recently initialized prior to this mill job. 
 
     Recall that the minimum mechanical resolution is 0.00625mm/step = 0.246mil/step.
-
-    NOTE: Currently, millLayer uses the coordinate locations specified in XML. They may need to be normalized with respect to the
-    coordinate system of the MDX-15. 
-        This also assumes a constant width for the wire routes. 
 """
 def millJobByLayer(targetLayer, board):
     wireRoutes = board.wires
     circleRoutes = board.routedCircles
     jobText = 'PU;'
 
-    # Begin milling wires on this layer
-    for wire in wireRoutes:
+    # Begin milling wires on this layer. 
+    # NOTE THAT FOR EACH LAYER WE LOOP ACROSS ALL WIRES! This is not a scaleable solution, but given the scope of 
+    # this project, the runtime should not be significant. 
+    for currentRouteNumber, wire in enumerate(wireRoutes):
         if(wire.layer == targetLayer):
             xInitial = round(wire.x1, 7)
             yInitial = round(wire.y1, 7)
             xDest = round(wire.x2, 7)
             yDest = round(wire.y2, 7)
-            jobText += 'PA{},{};MC1;PD;PA{},{}'.format(xInitial, yInitial, xDest, yDest)
-            jobText += 'PU;MC0\n\n'
+            
+            if(currentRouteNumber < (len(wireRoutes) - 1)):
+                nextxInit = round(wireRoutes[currentRouteNumber + 1].x2, 7)
+                nextyInit = round(wireRoutes[currentRouteNumber + 1].y2, 7)
+                jobText += 'PA{},{};PD;PD{},{}'.format(xInitial, yInitial, xDest, yDest)
+                # If this route ends at a point not adjacent to any other routes, pen up
+                if(not (nextxInit == xDest) and (nextyInit == yDest)):
+                    jobText += 'PU;\n'
     
-    for circle in circleRoutes:
+    # Separate routes and circles
+    jobText += '\n\n\n'
+
+    for currentCircleNumber, circle in enumerate(circleRoutes):
         if(circle.layer == targetLayer):
             xInitial = round(circle.x1, 7)
             yInitial = round(circle.y1, 7)
             xDest = round(circle.x2, 7)
             yDest = round(circle.y2, 7)
-            jobText += 'PA{},{};MC1;PD;PA{},{}'.format(xInitial, yInitial, xDest, yDest)
-            jobText += 'PU;MC0\n\n'
 
+            if(currentCircleNumber < (len(circleRoutes) - 1)):
+                nextxInit = round(circleRoutes[currentCircleNumber + 1].x2, 7)
+                nextyInit = round(circleRoutes[currentCircleNumber + 1].y2, 7)
+                jobText += 'PA{},{};PD;PD{},{}'.format(xInitial, yInitial, xDest, yDest)
+                # If this route ends at a point not adjacent to any other routes, pen up
+                if(not (nextxInit == xDest) and (nextyInit == yDest)):
+                    jobText += 'PU;\n\n'
+
+    jobText += 'MC1;IN;DF'
     return jobText
 
 
